@@ -14,7 +14,7 @@ python main_IE-MOIF.py --data <i>omics1_file omics2_file omics3_file</i> --label
 python VIT.py --task num_class --patch num_patch --mark dataset
 ## Example
 1. python main_IE-MOIF.py --data ./example/mRNA.csv ./example/meth.csv ./example/miRNA.csv --label ./example/label.csv --type mRNA meth miRNA --drm fs --fs_num 1000 1000 500 --fem tsne<br>
-2. python main_En-VIT.py --n_class 2 --patch 25
+2. python main_En-VIT.py --n_class 2 --patch 25 --Example
 ## NOTE
 In the IE-MOIF framework, ViT is used as the default classification model, and En-ViT based on ensemble learning needs to be manually set to open in parameters because it takes a long time to train.
 
