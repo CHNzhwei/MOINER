@@ -31,7 +31,10 @@ if __name__ == '__main__':
                         help="Choose whether to splite channel for multi-omics data")
     args = parser.parse_args()
     
-
+    path = os.getcwd()
+    model_output = path + '/results_preprocessing'
+    os.makedirs(model_output)
+    
     print("   [IE-MOIF] --Info: Start data standardization")
     omics_df_num = len(args.data)
     omics_df_list = []
