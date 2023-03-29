@@ -78,8 +78,7 @@ def binary_test(model, test_loder, device, save):
     metric = metrics(real_label, pred_label)
     test_acc, test_auc, test_precision, test_recall, test_f1_score, test_mcc = metric.binary_metrics(pred_score)
     if save:
-        metric.plot_roc_curve(pred_score)
-        return test_acc, test_auc, test_precision, test_recall, test_f1_score, test_mcc
+        return real_label, pred_label
     else:
         return np.average(test_loss), test_acc
 
@@ -129,7 +128,7 @@ def multicalss_test(model, test_loder, device, save):
     metric = metrics(real_label, pred_label)
     test_acc, test_f1_weight, test_f1_macro, test_cm, test_report = metric.multi_metrics()
     if save:
-        return test_acc, test_f1_weight, test_f1_macro, test_cm, test_report
+        return real_label, pred_label
     else:
         return np.average(test_loss), test_acc
 
@@ -163,7 +162,7 @@ if __name__ == '__main__':
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     epochs   = 10000
-    patience = 2000
+    patience = 100
 
     fold = 5 
     data  = np.load("./results_map/5.IE-MOIF_Transformed_Data_0.npy")
@@ -173,7 +172,6 @@ if __name__ == '__main__':
     else:
         zero_padding = np.zeros((data.shape[0],data.shape[1],data.shape[2],data.shape[2]-data.shape[3]))
         data = np.concatenate((data, zero_padding), axis=3)
-
     skf = StratifiedKFold(n_splits=fold, shuffle=True, random_state=random_state)
     ACC       = []
     F1        = []
@@ -216,15 +214,16 @@ if __name__ == '__main__':
             
             model.load_state_dict(torch.load('%s/IE-MOIF_fold_%s.model'%(model_output,fold+1)))
             if args.n_class == 2:
-                test_acc, test_auc, test_precision, test_recall, test_f1_score, test_mcc = binary_test(model, test_loader, device, 1)
-                ACC.append(test_acc)
-                F1.append(test_f1_score)
-                MCC.append(test_mcc)
+                test_real_label, test_pred_label = binary_test(model, test_loader, device, 1)
+                ACC.append(accuracy_score(test_real_label, test_pred_label))
+                F1.append(f1_score(test_real_label, test_pred_label))
+                MCC.append(matthews_corrcoef(test_real_label, test_pred_label))
             else:
-                test_acc, test_f1_w, test_f1_ma, test_cm, test_report = multicalss_test(model, test_loader, device, 1)
-                ACC.append(test_acc)
-                F1_weighted.append(test_f1_w)
-                F1_macro.append(test_f1_ma)
+                test_real_label, test_pred_label = multicalss_test(model, test_loader, device, 1)
+
+                ACC.append(accuracy_score(test_real_label, test_pred_label))
+                F1_weighted.append(f1_score(test_real_label, test_pred_label, average='weighted'))
+                F1_macro.append(f1_score(test_real_label, test_pred_label, average='macro'))
     else:
         for fold, (idx_train, idx_test) in enumerate(skf.split(data, label)):
             fold = fold+1
@@ -234,35 +233,35 @@ if __name__ == '__main__':
             train_pred = []
             test_pred  = []
 
-            for encoder in range(9,13):
+            for block in range(9,13):
                 model = ViT(
                             channels    = data.shape[1],
                             image_size  = data.shape[2],
                             patch_size  = patch,
                             num_classes = int(args.n_class),
                             dim   = 1024,
-                            depth = encoder,
+                            depth = block,
                             heads = heads,
                             mlp_dim = mlp_dim,
                             dropout = 0.1,
                             emb_dropout = 0.1).to(device)
-                early_stopping = EarlyStopping(patience=patience, verbose=True, delta = 0.0001, path='%s/IE-MOIF_fold_%s_model_%s.model'%(model_output,fold,encoder))
+                early_stopping = EarlyStopping(patience=patience, verbose=True, delta = 0.0001, path='%s/IE-MOIF_fold_%s_model_%s.model'%(model_output,fold,block))
                 for epoch in range(epochs):
-                    if args.n_class == "2":
+                    if args.n_class == 2:
                         t_loss, t_acc = binary_train(model, train_loader, device, lr = lr)
                         v_loss, v_acc = binary_test(model, test_loader, device, 0)
                     else:
                         t_loss, t_acc = multicalss_train(model, train_loader, device, lr = lr)
                         v_loss, v_acc = multicalss_test(model, test_loader, device, 0)
-                    print("Fold:{} \t Model: {} Train Epoch:{} \t Train Loss: {:.4f} \t Train Accuracy: {:.4f} \t Valid Loss: {:.4f} \t Valid ACC: {:.4f}".format(fold, encoder, epoch, t_loss, t_acc, v_loss, v_acc))
+                    print("Fold:{} \t Model: {} Train Epoch:{} \t Train Loss: {:.4f} \t Train Accuracy: {:.4f} \t Valid Loss: {:.4f} \t Valid ACC: {:.4f}".format(fold, block, epoch, t_loss, t_acc, v_loss, v_acc))
 
                     early_stopping(1 - v_acc, model)
                     if early_stopping.early_stop:
                         print("Early stopping!!!")
                         break
 
-                model.load_state_dict(torch.load('%s/IE-MOIF_fold_%s_model_%s.model'%(model_output,fold,encoder)))
-                if args.n_class == "2":
+                model.load_state_dict(torch.load('%s/IE-MOIF_fold_%s_model_%s.model'%(model_output,fold,block)))
+                if args.n_class == 2:
                     train_real_label, train_pred_label = binary_test(model, train_loader, device, 1)
                     test_real_label, test_pred_label  = binary_test(model, test_loader, device, 1)
                     train_pred.append(train_pred_label)
@@ -274,31 +273,31 @@ if __name__ == '__main__':
                     train_pred.append(train_pred_label)
                     test_pred.append(test_pred_label)
 
-        if args.n_class == 2:
-            LR = xgb.XGBClassifier(
-                                learning_rate=0.1, 
-                                n_estimators=500, 
-                                objective='binary:logistic')
-            LR.fit(np.array(train_pred).T, label[idx_train])
-            pred_label = LR.predict(np.array(test_pred).T)
-            ACC.append(accuracy_score(label[idx_test], pred_label))
-            F1.append(f1_score(label[idx_test], pred_label))
-            MCC.append(matthews_corrcoef(label[idx_test], pred_label))
-        else:
-            LR = xgb.XGBClassifier(
-                                learning_rate=0.1, 
-                                n_estimators=500, 
-                                objective = 'multi:softproba')
-            LR.fit(np.array(train_pred).T, label[idx_train])
-            pred_label = LR.predict(np.array(test_pred).T)
-            ACC.append(accuracy_score(label[idx_test], pred_label))
-            F1_weighted.append(f1_score(label[idx_test], pred_label, average='weighted'))
-            F1_macro.append(f1_score(label[idx_test], pred_label, average='macro'))
-
+            if args.n_class == 2:
+                LR = xgb.XGBClassifier(
+                                    learning_rate=0.1, 
+                                    n_estimators=500, 
+                                    objective='binary:logistic')
+                LR.fit(np.array(train_pred).T, label[idx_train])
+                pred_label = LR.predict(np.array(test_pred).T)
+                ACC.append(accuracy_score(label[idx_test], pred_label))
+                F1.append(f1_score(label[idx_test], pred_label))
+                MCC.append(matthews_corrcoef(label[idx_test], pred_label))
+            else:
+                LR = xgb.XGBClassifier(
+                                    learning_rate=0.1, 
+                                    n_estimators=500, 
+                                    objective = 'multi:softproba')
+                LR.fit(np.array(train_pred).T, label[idx_train])
+                pred_label = LR.predict(np.array(test_pred).T)
+                ACC.append(accuracy_score(label[idx_test], pred_label))
+                F1_weighted.append(f1_score(label[idx_test], pred_label, average='weighted'))
+                F1_macro.append(f1_score(label[idx_test], pred_label, average='macro'))
+    print(len(ACC), len(F1), len(MCC))
     try:
         model_report = pd.DataFrame(
                                     {
-                                    "Fold": [i for i in range(1,fold+2)] ,
+                                    "Fold": [i for i in range(1,6)] ,
                                     "ACC": ACC,
                                     "F1": F1,
                                     "MCC": MCC,
@@ -306,7 +305,7 @@ if __name__ == '__main__':
     except:
         model_report = pd.DataFrame(
                                     {
-                                    "Fold": [i for i in range(1,fold+2)] ,
+                                    "Fold": [i for i in range(1,6)] ,
                                     "ACC": ACC,
                                     "F1_weighted": F1_weighted,
                                     "F1_macro": F1_macro,
