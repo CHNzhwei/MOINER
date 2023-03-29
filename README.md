@@ -1,6 +1,6 @@
 # IE-MOIF: an information enhancement and image-like representation-based framework for multi-omics integration
 ## IE-MOIF Introduction
-![image](https://github.com/CHNzhwei/IE-MOIF/blob/main/IE-MOIF.png)
+![image](https://github.com/CHNzhwei/IE-MOIF/blob/master/IE-MOIF.png)
 ## Install
 conda create -n IE-MOIF python=3.7<br>
 conda activate IE-MOIF<br>
