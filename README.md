@@ -5,7 +5,7 @@
 conda create -n IE-MOIF python=3.7<br>
 conda activate IE-MOIF<br>
 pip install -r requirements.txt<br>
-pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 –f https://download.pytorch.org/whl/torch_stable.html--user<br>
+<div>pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 –f https://download.pytorch.org/whl/torch_stable.html--user</div>
 pip install ./utils_map/ lapjv-1.3.1.tar.gz<br>
 ## Usage
 <b>Integration Step</b><br>
