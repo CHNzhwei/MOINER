@@ -173,11 +173,9 @@ if __name__ == '__main__':
     else:
         zero_padding = np.zeros((data.shape[0],data.shape[1],data.shape[2],data.shape[2]-data.shape[3]))
         data = np.concatenate((data, zero_padding), axis=3)
+
     skf = StratifiedKFold(n_splits=fold, shuffle=True, random_state=random_state)
     ACC       = []
-    AUC       = []
-    Precision = []
-    Recall    = []
     F1        = []
     MCC       = []
     F1_weighted = []
@@ -220,9 +218,6 @@ if __name__ == '__main__':
             if args.n_class == 2:
                 test_acc, test_auc, test_precision, test_recall, test_f1_score, test_mcc = binary_test(model, test_loader, device, 1)
                 ACC.append(test_acc)
-                AUC.append(test_auc)
-                Precision.append(test_precision)
-                Recall.append(test_recall)
                 F1.append(test_f1_score)
                 MCC.append(test_mcc)
             else:
@@ -239,19 +234,19 @@ if __name__ == '__main__':
             train_pred = []
             test_pred  = []
 
-            for block in range(9,13):
+            for encoder in range(9,13):
                 model = ViT(
                             channels    = data.shape[1],
                             image_size  = data.shape[2],
                             patch_size  = patch,
                             num_classes = int(args.n_class),
                             dim   = 1024,
-                            depth = block,
+                            depth = encoder,
                             heads = heads,
                             mlp_dim = mlp_dim,
                             dropout = 0.1,
                             emb_dropout = 0.1).to(device)
-                early_stopping = EarlyStopping(patience=patience, verbose=True, delta = 0.0001, path='%s/IE-MOIF_fold_%s_model_%s.model'%(model_output,fold,block))
+                early_stopping = EarlyStopping(patience=patience, verbose=True, delta = 0.0001, path='%s/IE-MOIF_fold_%s_model_%s.model'%(model_output,fold,encoder))
                 for epoch in range(epochs):
                     if args.n_class == "2":
                         t_loss, t_acc = binary_train(model, train_loader, device, lr = lr)
@@ -259,14 +254,14 @@ if __name__ == '__main__':
                     else:
                         t_loss, t_acc = multicalss_train(model, train_loader, device, lr = lr)
                         v_loss, v_acc = multicalss_test(model, test_loader, device, 0)
-                    print("Fold:{} \t Model: {} Train Epoch:{} \t Train Loss: {:.4f} \t Train Accuracy: {:.4f} \t Valid Loss: {:.4f} \t Valid ACC: {:.4f}".format(fold, block, epoch, t_loss, t_acc, v_loss, v_acc))
+                    print("Fold:{} \t Model: {} Train Epoch:{} \t Train Loss: {:.4f} \t Train Accuracy: {:.4f} \t Valid Loss: {:.4f} \t Valid ACC: {:.4f}".format(fold, encoder, epoch, t_loss, t_acc, v_loss, v_acc))
 
                     early_stopping(1 - v_acc, model)
                     if early_stopping.early_stop:
                         print("Early stopping!!!")
                         break
 
-                model.load_state_dict(torch.load('%s/IE-MOIF_fold_%s_model_%s.model'%(model_output,fold,block)))
+                model.load_state_dict(torch.load('%s/IE-MOIF_fold_%s_model_%s.model'%(model_output,fold,encoder)))
                 if args.n_class == "2":
                     train_real_label, train_pred_label = binary_test(model, train_loader, device, 1)
                     test_real_label, test_pred_label  = binary_test(model, test_loader, device, 1)
@@ -305,9 +300,6 @@ if __name__ == '__main__':
                                     {
                                     "Fold": [i for i in range(1,fold+2)] ,
                                     "ACC": ACC,
-                                    "AUC": AUC,
-                                    "Precision": Precision,
-                                    "Recall": Recall,
                                     "F1": F1,
                                     "MCC": MCC,
                                     }).to_csv("%s/IE-MOIF_report_%s.csv"%(model_output,dataset), index=False)
