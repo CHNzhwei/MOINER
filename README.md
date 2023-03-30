@@ -22,7 +22,7 @@ python VIT.py --task num_class --patch num_patch --mark dataset
 ## Example
 
 ```bash
-python main_IE-MOIF.py --data ./example/mRNA.csv ./example/meth.csv ./example/miRNA.csv --label ./example/label.csv --type mRNA meth miRNA --drm fs --fs_num 1000 1000 500 --fem tsne<br>
+python main_IE-MOIF.py --data ./example/mRNA.csv ./example/meth.csv ./example/miRNA.csv --label ./example/label.csv --type mRNA meth miRNA --drm fs --fs_num 1000 1000 500 --fem tsne
 python main_En-VIT.py --n_class 2 --patch 25 --Example
 ```
 ## NOTE
