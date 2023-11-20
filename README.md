@@ -1,5 +1,5 @@
-# IE-MOIF: a multi-omics integration framework with information enhancement and image representation learning
-## IE-MOIF Introduction
+# MOIER: a multi-omics integration framework with information enhancement and image representation learning
+## MOIER Introduction
 ![image](https://github.com/CHNzhwei/IE-MOIF/blob/master/IE-MOIF.png)
 ## Install
 ```bash
