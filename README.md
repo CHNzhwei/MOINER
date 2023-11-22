@@ -26,7 +26,7 @@ python main_IE-MOIF.py --data ./example/mRNA.csv ./example/meth.csv ./example/mi
 python main_En-VIT.py --n_class 2 --patch 25 --Example
 ```
 ## NOTE
-In the IE-MOIF framework, ViT is used as the default classification model, and En-ViT based on ensemble learning needs to be manually set to open in parameters because it takes a long time to train.
+In the MOINER framework, ViT is used as the default classification model, and En-ViT based on ensemble learning needs to be manually set to open in parameters because it takes a long time to train.
 
 
 
